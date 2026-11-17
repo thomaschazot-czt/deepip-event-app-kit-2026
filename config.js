@@ -1,87 +1,85 @@
-/* DeepIP Event App Kit — configuration for VPP Herbstfachtagung 2026.
-   Generated from the build brief (Notion, "Sales app build brief", 19 Oct 2026).
+/* DeepIP Event App Kit — configuration for IP Service World 2026.
+   Generated from the build brief (Notion, "Sales app build brief", 17 Nov 2026).
    See config.template.js for what every key means.
 
    Nothing in here is data: no contact names, no account names, no notes.
    The only people named are the DeepIP team in USERS (CLAUDE.md section 2).
 
-   This file is also published, unchanged, to the public deploy repo (hosting
-   exception recorded in the brief, 19 Oct). It must therefore never carry a
-   Sheet ID, an export or anything read from the Sheet. */
+   This repo is served public on GitHub Pages until writes freeze on 28 Nov
+   (decided 17 Nov, open question 1 of the brief), then made private. This file
+   must therefore never carry a Sheet ID, an export or anything read from the
+   Sheet. */
 
 /* ---- Backend ---------------------------------------------------------- */
 
 // Filled at deployment (CLAUDE.md section 6, step 7). Remember: editing Code.gs
 // is not deploying it. Manage deployments > pencil > New version > Deploy.
-// The 20 Oct deployment whose access is "Anyone". The other deployment of the
-// same project is "Anyone within DeepIP": Google answers anonymous calls with a
-// sign-in page and no CORS headers, so the app could not reach it.
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxh5eWj6ruAgU49v1sM2injHSQY_gdp6M9YKoGnz-Onv0DWXdhgTCCTDz7VfKr0_rEk/exec";
+// Its own Apps Script project, bound to the IPSW 2026 lead list. Never the URL
+// of another event: that would send this event's captures to another Sheet.
+const APPS_SCRIPT_URL = "";
 
-// Shared DeepIP client (served from victoirepm-deepip.github.io since 21 Oct).
-// Must be byte-identical to CLIENT_ID in Code.gs. Its authorised origins cover
-// https://victoirepm-deepip.github.io and http://localhost:4173.
+// Shared DeepIP client. Must be byte-identical to CLIENT_ID in Code.gs. Its
+// authorised origins must include https://thomaschazot-czt.github.io.
 const GOOGLE_CLIENT_ID = "810262336028-7a92202r99cp09pv0s8gf5g5idsrer3u.apps.googleusercontent.com";
 
 /* ---- The event -------------------------------------------------------- */
 
 const EVENT = {
-  name: "VPP Herbstfachtagung 2026",
-  // Derives the IndexedDB name and the offline cache, so two events served from
-  // one origin never share storage.
-  slug: "vpp-herbst-2026",
+  name: "IP Service World 2026",
+  // Derives the IndexedDB name and the offline cache.
+  slug: "ipsw-2026",
   // Bump on every deployment.
-  shellVersion: 5,
+  shellVersion: 1,
   // Must equal timeZone in appsscript.json and the Sheet's File > Settings > Time zone.
   timezone: "Europe/Berlin",
 
-  // No second list at this event: the Field guide is the organiser's final list.
-  // The directory is empty (DIRECTORY_COLUMNS = {} in Code.gs).
+  // No second list: the Sheet is the full delegate list (DIRECTORY_COLUMNS = {}).
   directoryLabel: "",
-  // No product-engagement block at this event.
   engagementTrack: "",
 
   // From the brief. Narrow before wide: the first match wins. List on top in
-  // every phase, because soliciting outside the booth is not allowed and almost
-  // everyone met is a registered delegate. `ai-session` exists only to give the
-  // follow-up its own opening line. The dinner is the organiser's, with no table
-  // plan known to us, so no sub-list.
+  // every phase: the Sheet is the full delegate list. Flip rule (not a date): if
+  // more than half of a day's captures are "Typed on site", the next day's home
+  // becomes capture. Tool Check and the Lounge Room have no phase of their own.
+  // The pre-evening time is unreadable on the event page: 17:00 assumed.
   phases: [
-    { id: "dinner",     label: "Tonight",           from: "2026-10-22T18:00", to: "2026-10-23T03:00", home: "list", tonight: false },
-    { id: "day-1",      label: "Conference, day 1", from: "2026-10-22T07:30", to: "2026-10-22T18:00", home: "list", tonight: false },
-    { id: "ai-session", label: "AI session",        from: "2026-10-23T13:15", to: "2026-10-23T14:30", home: "list", tonight: false },
-    { id: "day-2",      label: "Conference, day 2", from: "2026-10-23T03:00", to: "2026-10-23T23:59", home: "list", tonight: false }
+    { id: "evening",     label: "Evening reception",     from: "2026-11-23T18:30", to: "2026-11-24T03:00", home: "list", tonight: false },
+    { id: "pre-evening", label: "Pre-evening reception", from: "2026-11-22T17:00", to: "2026-11-23T03:00", home: "list", tonight: false },
+    { id: "day-1",       label: "Congress, day 1",       from: "2026-11-23T03:00", to: "2026-11-23T18:30", home: "list", tonight: false },
+    { id: "day-2",       label: "Congress, day 2",       from: "2026-11-24T03:00", to: "2026-11-24T23:59", home: "list", tonight: false }
   ],
 
-  // Last day + 4 (kit default, confirmed in the brief).
-  freezeWritesFrom: "2026-10-27T00:00"
+  // Last day + 4 (kit default, brief).
+  freezeWritesFrom: "2026-11-28T00:00"
 };
 
 /* ---- Who is who ------------------------------------------------------- */
 /*
-  Everyone sees and writes every record. Nobody has an assigned list (decided
-  19 Oct): the app opens on the whole list with no default filter. The Field
-  guide's Ownership column is information only. Nobody is a tutor.
+  Everyone sees and writes every record. Nobody opens on a filtered list
+  (hasList: false). "Assigned to me" matches Company Owner, for Michael,
+  Frédéric and Andreas only. Nobody is a tutor.
 
-  No additional user (brief, 19 Oct): an unlisted @deepip.ai email still gets
-  the full app, and "Met by" then carries its email address.
+  Owner-name traps: Company Owner holds another "Edouard" (not on the floor),
+  so Edouard d'Archimbaud is matched on his surname only, never "edouard". Company
+  Owner spells "Frederic Von Barczy" without accents; matching is accent-blind.
 */
 const USERS = {
-  "celia.wei@deepip.ai":         { name: "Celia",    fullName: "Celia Wei",         role: "Sales", hasList: false, isTutor: false, ownerNames: ["celia", "wei"] },
-  "matthias.hofmann@deepip.ai":  { name: "Matthias", fullName: "Matthias Hofmann",  role: "Sales", hasList: false, isTutor: false, ownerNames: ["matthias", "hofmann"] },
-  "andreas.andersson@deepip.ai": { name: "Andreas",  fullName: "Andreas Andersson", role: "Sales", hasList: false, isTutor: false, ownerNames: ["andreas", "andersson"] }
+  "michael.schmidt@deepip.ai":     { name: "Michael",   fullName: "Michael Schmidt",      role: "Sales", hasList: false, isTutor: false, ownerNames: ["michael schmidt"] },
+  "frederic.von-barczy@deepip.ai": { name: "Frédéric",  fullName: "Frédéric Von Bárczy",  role: "Sales", hasList: false, isTutor: false, ownerNames: ["barczy"] },
+  "andreas.andersson@deepip.ai":   { name: "Andreas",   fullName: "Andreas Andersson",    role: "Sales", hasList: false, isTutor: false, ownerNames: ["andreas andersson"] },
+  "celia.wei@deepip.ai":           { name: "Celia",     fullName: "Celia Wei",            role: "Sales", hasList: false, isTutor: false, ownerNames: [] },
+  "matthias.hofmann@deepip.ai":    { name: "Matthias",  fullName: "Matthias Hofmann",     role: "Sales", hasList: false, isTutor: false, ownerNames: [] },
+  "edouard.darchimbaud@deepip.ai": { name: "Edouard",   fullName: "Edouard d'Archimbaud", role: "Sales", hasList: false, isTutor: false, ownerNames: ["archimbaud"] }
 };
 
-// Contact keys read by "Assigned to me": the hand-filled `Ownership` column of
-// the Field guide. Information only at this event; the chip is still offered.
-const OWNER_KEYS = ["ownership"];
+// "Assigned to me" reads Company Owner (HubSpot). No Ownership column here.
+const OWNER_KEYS = ["crmOwner"];
 
 /* ---- Capture form ----------------------------------------------------- */
 /*
-  Core fields are the follow-up generator's input contract. Write-tab headers:
-  met -> `Met status`, temperature -> `Temperature`, toolToday -> `Tool today`,
-  nextStep -> `Next step`, hook -> `Hook`. The tutor-only observation field has
-  its `Observation` column but is never shown: nobody is a tutor.
+  Core fields, write-tab headers: met -> `Met status`, temperature ->
+  `Temperature`, toolToday -> `Tool today`, nextStep -> `Next step`, hook ->
+  `Observation` (no Hook column on the write tab; VPP precedent).
 */
 const CAPTURE_OPTIONS = {
   met:         ["Yes", "No", "Not seen"],
@@ -91,30 +89,19 @@ const CAPTURE_OPTIONS = {
   observation: ["Engaged", "Asked a good question", "Already using a tool", "Stuck on something"]
 };
 
-/* Extra fields, from the brief. All optional: a capture is never blocked on one.
-   Each header is frozen and has its entry in ENCOUNTER_COLUMNS in Code.gs. */
+/* Extra fields, confirmed 17 Nov. All optional. Each header is frozen and has
+   its entry in ENCOUNTER_COLUMNS in Code.gs. */
 const CAPTURE_EXTRA = [
-  {
-    key: "practitioners",
-    label: "How many patent practitioners in the IP department?",
-    header: "Practitioners",
-    type: "number"
-  },
-  {
-    // Decides the follow-up signer. Absent for anyone met outside the list.
-    key: "technicalField",
-    label: "Technical field",
-    header: "Technical field",
-    type: "choice",
-    options: ["Life sciences", "Chemistry", "Electrical / software", "Mechanical", "Mixed / unknown"]
-  },
-  {
-    // Follow-up generator input: only when the person is not on the list.
-    key: "email",
-    label: "Email (if not in the list)",
-    header: "Email",
-    type: "text"
-  }
+  { key: "practitioners",   label: "How many patent practitioners?", header: "Number of Practitioners", type: "number" },
+  { key: "technicalField",  label: "Technical field", header: "Technical field", type: "choice",
+    options: ["Life sciences", "Chemistry", "Electrical / software", "Mechanical", "Mixed / unknown"] },
+  { key: "draftingModel",   label: "Drafting model", header: "Drafting model", type: "choice",
+    options: ["In-house only", "Outsourced", "Mixed"] },
+  { key: "purchaseSignOff", label: "Who signs off a tool purchase?", header: "Tool purchase sign-off", type: "choice",
+    options: ["Head of IP", "IT or procurement", "Partners", "Unknown"] },
+  { key: "otherTools",      label: "Other tools in use", header: "Other tools", type: "text" },
+  // Follow-up input: only when the person is not on the list.
+  { key: "email",           label: "Email (if not in the list)", header: "Work Email", type: "text" }
 ];
 
 // Names only.
@@ -122,15 +109,12 @@ const COMPETITORS = ["Ankar", "Solve", "Patlytics", "Questel", "Tradespace"];
 
 /* ---- Follow-up -------------------------------------------------------- */
 /*
-  One opening line per moment, keyed on phase id (the `Session / moment`
-  column). Generated on Mon 26 Oct by followup.html, run locally, never
-  committed and never published.
+  One opening line per moment, keyed on phase id (`Session / moment`).
+  Generated on Wed 25 Nov by followup.html, run locally. It writes nothing.
 
-  Signer (kit default, brief 19 Oct): a patent attorney chosen by `Technical
-  field`; the account owner (`Company owner`) goes in Cc. The attorney for each
-  field goes in `signers` before the batch; a field with no signer, or a capture
-  with no technical field, falls back to the person who had the conversation
-  (`Met by`). Every draft is reviewed by hand before it is sent.
+  Signer: a patent attorney chosen by `Technical field`, account owner in Cc.
+  The attorney names are still to come (brief, open question 5); until then
+  every draft falls back to the person who had the conversation (`Met by`).
 */
 const FOLLOW_UP = {
   sender: "technicalField",
@@ -144,52 +128,43 @@ const FOLLOW_UP = {
     // "Mechanical": ""
   },
   moments: {
-    "day-1":      "Thank you for stopping by our booth at the VPP Herbstfachtagung in Magdeburg.",
-    "dinner":     "It was a pleasure to talk over dinner at the VPP Herbstfachtagung.",
-    "ai-session": "Thank you for joining the conversation around the AI session at the VPP Herbstfachtagung.",
-    "day-2":      "Thank you for stopping by our booth at the VPP Herbstfachtagung in Magdeburg."
+    "pre-evening": "It was a pleasure to meet you on the eve of IP Service World in Munich.",
+    "day-1":       "Thank you for stopping by our booth at IP Service World in Munich.",
+    "evening":     "It was a pleasure to talk at the IP Service World evening reception at the Augustiner Stammhaus.",
+    "day-2":       "Thank you for stopping by our booth at IP Service World in Munich."
   }
 };
 
 /* ---- Contact card ----------------------------------------------------- */
-/* Field guide columns shown on the card, in this order. `Lifecycle stage` is
-   the engine's accountStatus; "Customer" raises the customer banner. */
 const CARD_FIELDS = [
-  // Hand-filled on the Field guide only; hidden while the app reads the
-  // organiser list tab, which has no such column.
-  { key: "ownership",        label: "Ownership" },
+  { key: "crmOwner",         label: "Company owner" },
   { key: "sdr",              label: "Prospecting SDR" },
   { key: "accountStatus",    label: "Lifecycle stage" },
-  { key: "tiering",          label: "Tier" },
+  { key: "priority",         label: "Tier" },
   { key: "targetAccount",    label: "Target account" },
+  { key: "openOrWonDeal",    label: "Open or won deal" },
   { key: "organizationType", label: "Organization type" },
-  { key: "patentPortfolio",  label: "Patent portfolio" },
-  { key: "practitioners",    label: "Practitioners on file" },
-  { key: "city",             label: "City" }
+  { key: "country",          label: "Country" }
 ];
 
-/* Tags under each row of the list. Yes/no columns show their short label only
-   when yes. */
 const LIST_FIELDS = [
   { key: "accountStatus" },
-  { key: "tiering" },
-  { key: "targetAccount", flag: "Target account" }
+  { key: "targetAccount", flag: "Target account" },
+  { key: "openOrWonDeal", flag: "Open or won deal" }
 ];
 
-/* Filter chips on the list. The first four work on the organiser list tab.
-   Priority, "Assigned to me" and "No owner" need the Field guide (Priority
-   override / Computed priority, Ownership): they stay last and simply fill up
-   once that tab exists. */
+/* Chips. Tier 1/2/3 is read as priority (the engine takes the digit), so the
+   P1/P2/P3 chips and the sort follow the Tiering column. TRUE matches "yes". */
 const LIST_FILTERS = [
+  "mine",
   "notmet",
-  { id: "target", label: "Target account", key: "targetAccount", match: "yes" },
-  "customers",
-  "multifirm",
   "p1",
   "p2",
   "p3",
-  "mine",
-  "noowner"
+  { id: "target", label: "Target account", key: "targetAccount", match: "yes" },
+  { id: "deal",   label: "Open or won deal", key: "openOrWonDeal", match: "yes" },
+  "customers",
+  "multifirm"
 ];
 
 /* ---- Sync and freshness ----------------------------------------------- */
@@ -202,10 +177,7 @@ const SYNC = {
 };
 
 /* ---- Modules ---------------------------------------------------------- */
-/*
-  dinner off (organiser dinner, seats picked in the VPP app, no table plan),
-  rsvp off (third-party event), follow-up on.
-*/
+/* dinner off (decided 17 Nov), rsvp off (third-party event), follow-up on. */
 const MODULES = {
   dinner: false,
   rsvp: false,

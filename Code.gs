@@ -50,20 +50,17 @@ var SHEET_ID = ''; // paste the Sheet ID in the bound copy only; kept out of the
 //   directory:  ['2. FICPI Directory', '2. Directory'],
 //   encounters: ['3. On site']
 var TAB_NAMES = {
-  // Field guide first: when it exists it wins. Until then (decided 20 Oct) the app
-  // reads the organiser list tab directly, with no Remove or Corrections, so DeepIP
-  // and exhibitor staff appear in the list.
-  contacts:   ['Field guide', 'Field Guide', 'VPP 2026 Attendees list'],
-  // No second list at this event. Same tabs, empty DIRECTORY_COLUMNS below ->
-  // empty directory, no warnings.
-  directory:  ['Field guide', 'Field Guide', 'VPP 2026 Attendees list'],
-  encounters: ['Encounters']
+  // IP Service World 2026. No Field guide (decided 17 Nov): the app reads the
+  // organiser tab directly, so there is no Remove, Ownership or Priority override.
+  contacts:   ['IPSW26 Attendees', 'IPSW 2026 Attendees'],
+  // No second list. Same tab, empty DIRECTORY_COLUMNS below -> empty directory.
+  directory:  ['IPSW26 Attendees', 'IPSW 2026 Attendees'],
+  encounters: ['Leads met onsite', 'Encounters']
 };
 
 var ALLOWED_DOMAIN = 'deepip.ai';
 
-// The OAuth 2.0 Web Client ID from the Google Cloud console. VPP Herbstfachtagung
-// 2026 has its own client (20 Oct), authorised for the deploy repo's Pages origin.
+// The OAuth 2.0 Web Client ID. Shared DeepIP client, reused across events.
 // Must be byte-identical to GOOGLE_CLIENT_ID in config.js.
 var CLIENT_ID = '810262336028-7a92202r99cp09pv0s8gf5g5idsrer3u.apps.googleusercontent.com';
 
@@ -82,81 +79,50 @@ var HEADER_SCAN_DEPTH = 25;
 // real header rows of the Sheet. Delete what this event does not have, add what it
 // does, and never rename a header once the Sheet is live.
 
-// VPP Herbstfachtagung 2026, consolidated tab "Field guide" (layer 3). The app
-// never reads the source tabs S1 / S2: both carry header collisions (Lifecycle
-// Stage / Lifecycle Stage 2, duplicated Prospecting SDR and Company owner).
-// Keys read by buildContacts, plus any extra key below, which is passed through
-// to the app as is (CARD_FIELDS, LIST_FIELDS and LIST_FILTERS in config.js read
-// them). Keys starting with `guard` claim a column and are never sent.
+// IP Service World 2026, organiser tab "IPSW26 Attendees" (organiser export
+// enriched from HubSpot, ~525 rows). Header matching is case-insensitive.
 //
 // Collision watch, declaration order is priority order:
-//   - `Firm` must not land on `First name`: exact match wins, and `firstName`
-//     is declared first anyway.
-//   - `Ownership` (field zone, hand-filled) and `Company owner` (HubSpot) are
-//     two different columns; neither prefix-matches the other.
-//   - `Priority override` and `Computed priority` are named in full.
-// Not read, on purpose: Key (join key, used at export), LinkedIn, HubSpot
-// contact ID, HubSpot company ID (carried for the CRM import only).
-//
-// Second header in a list = the organiser list tab "VPP 2026 Attendees list",
-// read directly until a Field guide exists. On that tab `Lifecycle Stage` wins
-// over `Lifecycle Stage 2` by exact match; Phone Number, LinkedIn and lemlist
-// columns are not read. The field-zone keys (priority, ownership, removed,
-// angle, fieldNotes), Computed priority and Attendees from same firm have no
-// column there: selfTest lists them as blank, which is expected.
+//   - `Company` (firm) and `Company Owner` (crmOwner): both exact matches.
+//   - `Tiering (New 2026` has no closing parenthesis on this tab. It is mapped by
+//     the prefix `Tiering` and must not be renamed. It is read as `priority`:
+//     the engine takes the digit of "Tier 1/2/3", so the P1/P2/P3 chips and the
+//     sort follow it (open question 3, decided 17 Nov).
+//   - `Target Account` and `Has Open or Won Deal` hold TRUE/FALSE; the engine's
+//     "yes" match accepts TRUE (open question 4).
+// Not read, on purpose: both LinkedIn URLs, Domain, State Organization.
 var CONTACT_COLUMNS = {
   firstName:        { headers: ['First name'],             required: true  },
   lastName:         { headers: ['Last name'],              required: true  },
-  firm:             { headers: ['Firm', 'Company name'],   required: true  },
-  email:            { headers: ['Email'],                  required: false },
-  role:             { headers: ['Job title'],              required: false },
-  organizationType: { headers: ['Organization type'],      required: false },
-  tiering:          { headers: ['Tier', 'Tiering (New 2026)'], required: false },
-  targetAccount:    { headers: ['Target account', 'Target Account (Company Recopy)'], required: false },
-  // Lifecycle "Customer" raises the customer banner on the card.
-  accountStatus:    { headers: ['Lifecycle stage'],        required: false },
-  crmOwner:         { headers: ['Company owner'],          required: false },
+  firm:             { headers: ['Company'],                required: true  },
+  email:            { headers: ['Work Email'],             required: false },
+  role:             { headers: ['Job Title'],              required: false },
+  country:          { headers: ['Country Organization'],   required: false },
+  crmOwner:         { headers: ['Company Owner'],          required: false },
   sdr:              { headers: ['Prospecting SDR'],        required: false },
-  country:          { headers: ['Country'],                required: false },
-  city:             { headers: ['City'],                   required: false },
-  practitioners:    { headers: ['Practitioners on file', 'Number of Patent Practitioners'], required: false },
-  patentPortfolio:  { headers: ['Patent portfolio'],       required: false },
-  sameFirmCount:    { headers: ['Attendees from same firm'], required: false },
-  // Read as P1 / P2 / P3; the override, when filled, wins.
-  suggestedPrio:    { headers: ['Computed priority'],      required: false },
-  priority:         { headers: ['Priority override'],      required: false },
-  // Field zone. Ownership is information only at this event (no assigned lists).
-  ownership:        { headers: ['Ownership'],              required: false },
-  removed:          { headers: ['Remove'],                 required: false },
-  angle:            { headers: ['Objective'],              required: false },
-  fieldNotes:       { headers: ['Context'],                required: false }
+  // Lifecycle "customer" raises the customer banner on the card.
+  accountStatus:    { headers: ['Lifecycle Stage'],        required: false },
+  organizationType: { headers: ['Organization Type'],      required: false },
+  priority:         { headers: ['Tiering (New 2026)', 'Tiering'], required: false },
+  targetAccount:    { headers: ['Target Account'],         required: false },
+  openOrWonDeal:    { headers: ['Has Open or Won Deal'],   required: false }
 };
 
-// The second list, searched when someone is not in the main population.
-// No second list (see TAB_NAMES). Empty on purpose.
+// No second list. Empty on purpose.
 var DIRECTORY_COLUMNS = {};
 
-// Columns the app writes to the encounters tab.
+// Columns the app writes to the encounters tab "Leads met onsite".
 //
-// DECLARATION ORDER IS PRIORITY ORDER. When two logical fields resolve to the same
-// column, the later one is dropped rather than allowed to overwrite the first.
-// metBy is declared before met, and `met` is headed `Met status` so it can never
-// land on `Met by`.
+// DECLARATION ORDER IS PRIORITY ORDER. `met` is headed `Met status` so it can
+// never land on `Met by`. Names are stored split; lastName is the required one.
 //
-// Names are stored SPLIT. lastName is the required one: a card read in a noisy room
-// sometimes yields only a surname, and that row is still worth writing.
-//
-// Tab "Encounters". Append only, idempotent on Client ID.
-// The live tab (20 Oct) reuses the previous event's layout rather than the
-// brief's: `Company name`, `Work Email`, `Number of Practitioners`, and no `Hook`
-// column. Each key lists the brief's header first and the live one second, so
-// either layout resolves. With no `Hook`, the hook goes to `Observation`, as at
-// the previous event; nobody is a tutor here, so `observation` is not mapped.
-// Not written by the app: Key, Company Owner, Prospecting SDR, Tiering,
-// Lifecycle, Organization type, Domain (joined back from the contacts at
-// export), and Drafting model, Tool purchase sign-off, Other tools (not asked
-// at this event).
-// `captureMethod` (from the file, from search, typed on site) is headed `Source`.
+// The write tab has no Hook column: the hook goes to `Observation` (VPP
+// precedent); nobody is a tutor, so `observation` is not mapped.
+// Not written by the app (blank, joined back from the contacts at export on the
+// join key Work Email, else First + Last + Company): Company Owner, Prospecting
+// SDR, Tiering (New 2026), Lifecycle, Organization type, Domain, and Work Email
+// for people who are on the list.
+// `captureMethod` (From the file / Typed on site) is headed `Source`.
 var ENCOUNTER_COLUMNS = {
   clientId:        { headers: ['Client ID'],                    required: false },
   capturedAt:      { headers: ['Captured at'],                  required: false },
@@ -165,18 +131,22 @@ var ENCOUNTER_COLUMNS = {
   metBy:           { headers: ['Met by'],                       required: true  },
   lastName:        { headers: ['Last name'],                    required: true  },
   firstName:       { headers: ['First name'],                   required: false },
-  firm:            { headers: ['Firm', 'Company name'],         required: false },
-  email:           { headers: ['Email', 'Work Email'],          required: false },
-  role:            { headers: ['Job title'],                    required: false },
+  firm:            { headers: ['Company name'],                 required: false },
+  role:            { headers: ['Job Title'],                    required: false },
+  email:           { headers: ['Work Email'],                   required: false },
   met:             { headers: ['Met status'],                   required: false },
   temperature:     { headers: ['Temperature'],                  required: false },
   toolToday:       { headers: ['Tool today'],                   required: false },
   nextStep:        { headers: ['Next step'],                    required: false },
   hook:            { headers: ['Hook', 'Observation'],          required: false },
-  practitioners:   { headers: ['Practitioners', 'Number of Practitioners'], required: false },
+  practitioners:   { headers: ['Number of Practitioners'],      required: false },
   technicalField:  { headers: ['Technical field'],              required: false },
+  draftingModel:   { headers: ['Drafting model'],               required: false },
+  purchaseSignOff: { headers: ['Tool purchase sign-off'],       required: false },
+  otherTools:      { headers: ['Other tools'],                  required: false },
   captureMethod:   { headers: ['Source'],                       required: false }
 };
+
 
 // Ties each logical tab to its name aliases and to the column map that describes
 // its shape. `minRatio` is how much of that map a tab must satisfy before we are
