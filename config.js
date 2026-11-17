@@ -16,7 +16,7 @@
 // is not deploying it. Manage deployments > pencil > New version > Deploy.
 // Its own Apps Script project, bound to the IPSW 2026 lead list. Never the URL
 // of another event: that would send this event's captures to another Sheet.
-const APPS_SCRIPT_URL = "";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwaV439DPmLUweKCIFI4ZME4u7h82K0HkBkmQ3BQPm2fnHuyLxvr_qMdYkKucBj-7aeUA/exec";
 
 // Shared DeepIP client. Must be byte-identical to CLIENT_ID in Code.gs. Its
 // authorised origins must include https://thomaschazot-czt.github.io.
